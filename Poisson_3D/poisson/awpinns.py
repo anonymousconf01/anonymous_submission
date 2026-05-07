@@ -7,13 +7,14 @@ class AWPINN(nn.Module):
         super(AWPINN, self).__init__()
         num_wavelets = len(wx)
         
-        # Make these parameters untrainable
-        self.wx = nn.Parameter(wx.reshape(num_wavelets, 1))
-        self.bx = nn.Parameter(-bx)
-        self.wy = nn.Parameter(wy.reshape(num_wavelets, 1))
-        self.by = nn.Parameter(-by)
-        self.wz = nn.Parameter(wz.reshape(num_wavelets, 1))
-        self.bz = nn.Parameter(-bz)
+        
+        self.register_buffer("wx", wx.reshape(num_wavelets, 1).contiguous())
+        self.register_buffer("bx", -bx.reshape(1, -1).contiguous())
+        self.register_buffer("wy", wy.reshape(num_wavelets, 1).contiguous())
+        self.register_buffer("by", -by.reshape(1, -1).contiguous())
+        self.register_buffer("wz", wz.reshape(num_wavelets, 1).contiguous())
+        self.register_buffer("bz", -bz.reshape(1, -1).contiguous())
+        
         self.output_weight = nn.Parameter(coeff.reshape(1, -1))
         self.output_bias = nn.Parameter(torch.tensor(bias))
 
@@ -37,8 +38,8 @@ class AWPINN(nn.Module):
         z_wavelets = -z_transformed * z_exp
 
         
-
-        scale = torch.sqrt(self.wx.t() * self.wy.t() * self.wz.t())  # (1, num_wavelets)
+        scale = torch.sqrt(torch.clamp(self.wx.t() * self.wy.t() * self.wz.t(), min=1e-12))  # (1, num_wavelets)
+        # scale = torch.sqrt(self.wx.t() * self.wy.t() * self.wz.t())  # (1, num_wavelets)
         wavelets = scale * x_wavelets * y_wavelets * z_wavelets
         output = (wavelets @ self.output_weight.t()).squeeze() + self.output_bias
 

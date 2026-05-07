@@ -6,9 +6,6 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from timeit import default_timer
-seed = 121
-torch.manual_seed(seed)
-np.random.seed(seed)
 from poisson.config import *  # expects device, seed
 from poisson.waveletfamily import *
 from poisson.coeff_selection import *
@@ -16,13 +13,15 @@ from poisson.parameter import *
 from poisson.awpinns import AWPINN
 from tqdm import tqdm
 import time
+import random
+torch.set_float32_matmul_precision('high')
+torch.backends.cudnn.benchmark = True
 
 # #load npz file
 data = np.load('data/poisson_pred_fno_out.npz', allow_pickle=True)
 u_fno_pred = data['pred']
 data = np.load('data/test_dataset_out.npz', allow_pickle=True)
 params = data['params']
-
 
 Jx = torch.arange(0, 6, device=device)
 Jy = torch.arange(0, 6, device=device)
@@ -41,6 +40,7 @@ dz = (z_upper - z_lower) / (n_fno - 1)
 chunk_size = 256
 Err = []
 def train_awpinn_for_fno(i, n_test):
+    torch.cuda.reset_peak_memory_stats(device)
     out = torch.from_numpy(u_fno_pred[i]).float().to(device)
     u_vec = out.squeeze(0).reshape(-1).to(device)
     
@@ -65,6 +65,7 @@ def train_awpinn_for_fno(i, n_test):
     bt = family_new[:,5].float().to(device)
 
     AWPINN_model = AWPINN(wx, bx, wy, by, wt, bt, coeff_new, bias).to(device)
+    AWPINN_model = torch.compile(AWPINN_model, backend="eager")
 
     optimizer_AWPINN = torch.optim.LBFGS(AWPINN_model.parameters(), 
                                 lr=1.0,                            
@@ -96,6 +97,7 @@ def train_awpinn_for_fno(i, n_test):
     TEST_BATCH_SIZE = 5000
     def awpinn_loss_batched():
         n_total = x_interior.shape[0]
+        # ── 1. PDE loss — batched, backward per chunk ──────────────────
         pde_loss_accum = torch.tensor(0.0, device=device)
 
         for start in range(0, n_total, COLLOC_BATCH_SIZE):
@@ -157,7 +159,7 @@ def train_awpinn_for_fno(i, n_test):
 
             total_loss_val, pde_loss_val, bc_loss_val = awpinn_loss_batched()
 
-            if itr % 1000 == 0:
+            if (itr + 1) % 1000 == 0 or itr == 0:
                 with torch.no_grad():
                     x_flat = x_test.reshape(-1)
                     y_flat = y_test.reshape(-1)
@@ -224,17 +226,16 @@ def train_awpinn_for_fno(i, n_test):
 
     return numerical_cpu.cpu(), exact_test.cpu()
 
-i = 0 #instance index
-numerical, exact_test = train_awpinn_for_fno(i, n_test)
-ErrL2 = (torch.sum(torch.abs(exact_test.reshape(-1)-numerical.reshape(-1))**2))**0.5 / (torch.sum(torch.abs(exact_test.reshape(-1))**2))**0.5
-ErrMax = torch.max(torch.abs(exact_test.reshape(-1)-numerical.reshape(-1)))
-Err
-# save Err to npz
-import numpy as np
-# np.savez('data/awpinn_fno_errors_out.npz', Err=Err)
-# load Err from npz
-Err = np.load('data/awpinn_fno_errors_out.npz', allow_pickle=True)['Err']
-mean_L2_error = np.mean([err[0] for err in Err])
-mean_Max_error = np.mean([err[1] for err in Err])
-print(f'Mean Relative L2 Error: {mean_L2_error}, Mean Max Error: {mean_Max_error}')
-print("Standard Deviation of L2 Errors:", np.std([err[0] for err in Err]))
+for i in tqdm(range(1)):
+    numerical, exact_test = train_awpinn_for_fno(1, n_test)
+
+
+ErrL2 = (torch.sum((exact_test.reshape(-1) - numerical.reshape(-1)) ** 2) ** 0.5 /
+            torch.sum(exact_test.reshape(-1) ** 2) ** 0.5)
+ErrMax = torch.max(torch.abs(exact_test.reshape(-1) - numerical.reshape(-1)))
+
+peak_mem_mb = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
+
+print(f"FINAL_L2: {ErrL2.item():.6f}")
+print(f"FINAL_MAX: {ErrMax.item():.6f}")
+print(f"FINAL_MEM: {peak_mem_mb:.2f}")
