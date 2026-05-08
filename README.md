@@ -1,10 +1,53 @@
-# Adaptive multiscale operator correction via learned spectral subspace and physics-informed optimization
+# Adaptive Multiscale Operator Correction (AMOC)
 
-This repository contains the code and data for **Adaptive Multiscale Operator Correction (AMOC)**, a hybrid framework that combines neural operator learning with physics-constrained optimization in a low-dimensional, instance-specific adaptive spectral subspace.
+PyTorch implementation of **Adaptive Multiscale Operator Correction (AMOC)** for PDE solution correction using a neural-operator prediction followed by physics-informed correction in a sparse spectral representation.
 
-## Data
+This repository contains code for experiments on:
+- Darcy flow
+- Heat equation
+- 2D Poisson equation
+- 3D Poisson equation
+- 3D Helmholtz equation
 
-The data for this project is available here:
+## Overview
 
+AMOC is a three-stage pipeline:
+1. Train a neural operator to produce a coarse PDE solution.
+2. Project the prediction onto a sparse spectral basis using wavelet or Fourier modes.
+3. Perform physics-informed refinement in the selected spectral representation.
+
+Two correction variants are supported:
+- **W-AMOC**: localized wavelet-based correction
+- **F-AMOC**: Fourier-mode-based correction
+
+
+
+
+The implementation builds on ideas and software ecosystems associated with neural operators, operator learning, and physics-informed learning discussed in the manuscript.
+
+### Fourier Neural Operator (FNO)
+
+```bibtex
+@inproceedings{li2021fno,
+  title     = {Fourier Neural Operator for Parametric Partial Differential Equations},
+  author    = {Li, Zongyi and Kovachki, Nikola and Azizzadenesheli, Kamyar and Liu, Burigede and Bhattacharya, Kaushik and Stuart, Andrew and Anandkumar, Anima},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2021}
+}
+```
+
+```bibtex
+@article{PANDEY2026108860,
+title = {An efficient wavelet-based physics-informed neural network for multiscale problems},
+journal = {Neural Networks},
+volume = {200},
+pages = {108860},
+year = {2026},
+issn = {0893-6080},
+doi = {https://doi.org/10.1016/j.neunet.2026.108860},
+url = {https://www.sciencedirect.com/science/article/pii/S0893608026003217},
+author = {Himanshu Pandey and Anshima Singh and Ratikanta Behera}
+}
+```
 - https://drive.google.com/drive/folders/1itTmOVgtIAs53xGvSjgPpoQ9zCr56HWN
 
