@@ -28,11 +28,13 @@ The implementation builds on ideas and software ecosystems associated with neura
 ### Fourier Neural Operator (FNO)
 
 ```bibtex
-@inproceedings{li2021fno,
-  title     = {Fourier Neural Operator for Parametric Partial Differential Equations},
-  author    = {Li, Zongyi and Kovachki, Nikola and Azizzadenesheli, Kamyar and Liu, Burigede and Bhattacharya, Kaushik and Stuart, Andrew and Anandkumar, Anima},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2021}
+@inproceedings{
+li2021_fno,
+title={Fourier Neural Operator for Parametric Partial Differential Equations},
+author={Zongyi Li and Nikola Borislavov Kovachki and Kamyar Azizzadenesheli and Burigede liu and Kaushik Bhattacharya and Andrew Stuart and Anima Anandkumar},
+booktitle={International Conference on Learning Representations},
+year={2021},
+url={https://openreview.net/forum?id=c8P9NQVtmnO}
 }
 ```
 
